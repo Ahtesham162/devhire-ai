@@ -4,7 +4,7 @@ const cors = require('cors');
 
 const mongoose = require('mongoose');
 
-console.log('Attempting to connect with URI:', process.env.MONGO_URI ? 'URI loaded' : 'URI MISSING');
+
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('✅ MongoDB connected'))
@@ -13,6 +13,9 @@ mongoose.connect(process.env.MONGO_URI)
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+const authRoutes = require('./routes/authRoutes');
+app.use('/api/auth', authRoutes);
 
 app.get('/', (req, res) => {
   res.send('DevHire AI API running');
