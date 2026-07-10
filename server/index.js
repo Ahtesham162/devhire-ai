@@ -20,6 +20,9 @@ app.use('/api/auth', authRoutes);
 const resumeRoutes = require('./routes/resumeRoutes');
 app.use('/api/resume', resumeRoutes);
 
+const analysisRoutes = require('./routes/analysisRoutes');
+app.use('/api', analysisRoutes);
+
 app.get('/', (req, res) => {
   res.send('DevHire AI API running');
 });
