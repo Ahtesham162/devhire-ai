@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Download } from 'lucide-react';
+import jsPDF from 'jspdf';
 import api from '../api/axios';
 
 export default function Results() {
@@ -13,6 +14,63 @@ export default function Results() {
       .then((res) => setAnalysis(res.data.analysis))
       .catch(() => setError('Failed to load analysis'));
   }, [id]);
+
+  const downloadPDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    const maxWidth = pageWidth - margin * 2;
+    let y = 20;
+
+    // Header
+    doc.setFontSize(20);
+    doc.setFont(undefined, 'bold');
+    doc.text('DevHire AI — Resume Analysis Report', margin, y);
+    y += 8;
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    doc.setTextColor(120);
+    doc.text(`Resume: ${analysis.resumeFilename}`, margin, y);
+    y += 5;
+    doc.text(`Generated: ${new Date(analysis.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}`, margin, y);
+    y += 12;
+
+    // Score
+    doc.setTextColor(0);
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.text(`ATS Score: ${analysis.ats_score} / 100`, margin, y);
+    y += 12;
+
+    const addSection = (title, items) => {
+      if (!items || items.length === 0) return;
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      doc.text(title, margin, y);
+      y += 7;
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'normal');
+      items.forEach((item) => {
+        const lines = doc.splitTextToSize(`•  ${item}`, maxWidth);
+        lines.forEach((line) => {
+          if (y > 280) {
+            doc.addPage();
+            y = 20;
+          }
+          doc.text(line, margin, y);
+          y += 6;
+        });
+      });
+      y += 6;
+    };
+
+    addSection('Matched Keywords', analysis.matched_keywords);
+    addSection('Missing Keywords', analysis.missing_keywords);
+    addSection('Skill Gaps', analysis.skill_gaps);
+    addSection('Suggestions', analysis.suggestions);
+
+    doc.save(`DevHireAI-Analysis-${analysis.resumeFilename.replace('.pdf', '')}.pdf`);
+  };
 
   if (error) return <p className="max-w-2xl mx-auto px-4 py-10 text-danger">{error}</p>;
   if (!analysis) return <p className="max-w-2xl mx-auto px-4 py-10 text-muted">Loading...</p>;
@@ -27,9 +85,17 @@ export default function Results() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
-      <Link to="/" className="inline-flex items-center gap-1.5 text-muted text-sm hover:text-white transition">
-        <ArrowLeft size={14} /> Back to Dashboard
-      </Link>
+      <div className="flex justify-between items-center">
+        <Link to="/" className="inline-flex items-center gap-1.5 text-muted text-sm hover:text-white transition">
+          <ArrowLeft size={14} /> Back to Dashboard
+        </Link>
+        <button
+          onClick={downloadPDF}
+          className="inline-flex items-center gap-1.5 text-sm bg-surface border border-border px-3 py-1.5 rounded-lg hover:border-accent/50 transition"
+        >
+          <Download size={14} /> Download PDF
+        </button>
+      </div>
 
       <div className="bg-surface border border-border rounded-xl p-8 mt-4 mb-6 flex flex-col items-center">
         <p className="text-xs uppercase tracking-widest text-muted mb-4">ATS Score</p>
