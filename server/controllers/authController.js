@@ -98,6 +98,7 @@ exports.resetPassword = async (req, res) => {
 
     res.json({ message: 'Password reset successful' });
   } catch (err) {
-    res.status(500).json({ message: 'Failed to reset password', error: err.message });
-  }
+  console.error('FORGOT PASSWORD ERROR:', err);
+  res.status(500).json({ message: 'Failed to process request', error: err.message });
+}
 };
