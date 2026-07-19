@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import api from '../api/axios';
 
 export default function Results() {
@@ -13,54 +14,89 @@ export default function Results() {
       .catch(() => setError('Failed to load analysis'));
   }, [id]);
 
-  if (error) return <p className="p-8 text-red-500">{error}</p>;
-  if (!analysis) return <p className="p-8">Loading...</p>;
+  if (error) return <p className="max-w-2xl mx-auto px-4 py-10 text-danger">{error}</p>;
+  if (!analysis) return <p className="max-w-2xl mx-auto px-4 py-10 text-muted">Loading...</p>;
+
+  const score = analysis.ats_score;
+  const colorClass = score >= 70 ? 'text-success' : score >= 40 ? 'text-accent' : 'text-danger';
+  const strokeColor = score >= 70 ? '#4ADE80' : score >= 40 ? '#F5A623' : '#F87171';
+
+  const radius = 70;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (score / 100) * circumference;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10 px-4">
-      <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-md">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Analysis Results</h1>
-          <Link to="/" className="text-blue-600 text-sm">← Back to Dashboard</Link>
-        </div>
+    <div className="max-w-2xl mx-auto px-4 py-10">
+      <Link to="/" className="inline-flex items-center gap-1.5 text-muted text-sm hover:text-white transition">
+        <ArrowLeft size={14} /> Back to Dashboard
+      </Link>
 
-        <div className="mb-6 text-center">
-          <div className="text-5xl font-bold text-blue-600">{analysis.ats_score}</div>
-          <div className="text-gray-500">ATS Score / 100</div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div>
-            <h2 className="font-semibold text-green-700 mb-2">Matched Keywords</h2>
-            <ul className="text-sm space-y-1">
-              {analysis.matched_keywords?.map((kw, i) => (
-                <li key={i} className="bg-green-50 text-green-800 px-2 py-1 rounded">{kw}</li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h2 className="font-semibold text-red-700 mb-2">Missing Keywords</h2>
-            <ul className="text-sm space-y-1">
-              {analysis.missing_keywords?.map((kw, i) => (
-                <li key={i} className="bg-red-50 text-red-800 px-2 py-1 rounded">{kw}</li>
-              ))}
-            </ul>
+      <div className="bg-surface border border-border rounded-xl p-8 mt-4 mb-6 flex flex-col items-center">
+        <p className="text-xs uppercase tracking-widest text-muted mb-4">ATS Score</p>
+        <div className="relative w-44 h-44">
+          <svg className="w-full h-full -rotate-90" viewBox="0 0 160 160">
+            <circle cx="80" cy="80" r={radius} fill="none" stroke="#2A2E37" strokeWidth="10" />
+            <circle
+              cx="80" cy="80" r={radius} fill="none"
+              stroke={strokeColor} strokeWidth="10" strokeLinecap="round"
+              strokeDasharray={circumference}
+              strokeDashoffset={offset}
+              style={{ transition: 'stroke-dashoffset 1s ease-out' }}
+            />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className={`font-mono font-bold text-4xl ${colorClass}`}>{score}</span>
+            <span className="text-xs text-muted">/ 100</span>
           </div>
         </div>
+        <p className="text-sm text-muted mt-4 text-center max-w-xs">
+          {score >= 70 ? 'Strong match for this role' : score >= 40 ? 'Moderate match — some gaps to address' : 'Significant gaps against this role'}
+        </p>
+      </div>
 
-        <div className="mb-6">
-          <h2 className="font-semibold mb-2">Skill Gaps</h2>
-          <ul className="list-disc list-inside text-sm space-y-1">
-            {analysis.skill_gaps?.map((gap, i) => <li key={i}>{gap}</li>)}
-          </ul>
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="bg-surface border border-border rounded-xl p-4">
+          <h2 className="text-xs uppercase tracking-widest text-success mb-3">Matched</h2>
+          <div className="flex flex-wrap gap-1.5">
+            {analysis.matched_keywords?.map((kw, i) => (
+              <span key={i} className="font-mono text-xs bg-success/10 text-success px-2 py-1 rounded-md">
+                {kw}
+              </span>
+            ))}
+          </div>
         </div>
+        <div className="bg-surface border border-border rounded-xl p-4">
+          <h2 className="text-xs uppercase tracking-widest text-danger mb-3">Missing</h2>
+          <div className="flex flex-wrap gap-1.5">
+            {analysis.missing_keywords?.map((kw, i) => (
+              <span key={i} className="font-mono text-xs bg-danger/10 text-danger px-2 py-1 rounded-md">
+                {kw}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
 
-        <div>
-          <h2 className="font-semibold mb-2">Suggestions</h2>
-          <ul className="list-disc list-inside text-sm space-y-1">
-            {analysis.suggestions?.map((s, i) => <li key={i}>{s}</li>)}
-          </ul>
-        </div>
+      <div className="bg-surface border border-border rounded-xl p-5 mb-4">
+        <h2 className="text-xs uppercase tracking-widest text-muted mb-3">Skill Gaps</h2>
+        <ul className="space-y-2.5">
+          {analysis.skill_gaps?.map((gap, i) => (
+            <li key={i} className="text-sm flex gap-2.5 items-start">
+              <ArrowRight size={14} className="text-accent mt-0.5 flex-shrink-0" /> {gap}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="bg-surface border border-border rounded-xl p-5">
+        <h2 className="text-xs uppercase tracking-widest text-muted mb-3">Suggestions</h2>
+        <ul className="space-y-2.5">
+          {analysis.suggestions?.map((s, i) => (
+            <li key={i} className="text-sm flex gap-2.5 items-start">
+              <ArrowRight size={14} className="text-accent mt-0.5 flex-shrink-0" /> {s}
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

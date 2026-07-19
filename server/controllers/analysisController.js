@@ -51,3 +51,15 @@ exports.getAnalysisById = async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch analysis', error: err.message });
   }
 };
+
+exports.deleteAnalysis = async (req, res) => {
+  try {
+    const analysis = await Analysis.findOneAndDelete({ _id: req.params.id, userId: req.userId });
+    if (!analysis) {
+      return res.status(404).json({ message: 'Analysis not found' });
+    }
+    res.json({ message: 'Analysis deleted' });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to delete analysis', error: err.message });
+  }
+};
