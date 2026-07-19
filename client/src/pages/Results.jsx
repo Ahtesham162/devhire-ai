@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Download } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Download, Sparkles, Copy, Check } from 'lucide-react';
 import jsPDF from 'jspdf';
 import api from '../api/axios';
 
@@ -8,12 +8,38 @@ export default function Results() {
   const { id } = useParams();
   const [analysis, setAnalysis] = useState(null);
   const [error, setError] = useState('');
+  const [coverLetter, setCoverLetter] = useState(null);
+  const [generatingLetter, setGeneratingLetter] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     api.get(`/analyses/${id}`)
-      .then((res) => setAnalysis(res.data.analysis))
+      .then((res) => {
+        setAnalysis(res.data.analysis);
+        if (res.data.analysis.coverLetter) {
+          setCoverLetter(res.data.analysis.coverLetter);
+        }
+      })
       .catch(() => setError('Failed to load analysis'));
   }, [id]);
+
+  const handleGenerateCoverLetter = async () => {
+    setGeneratingLetter(true);
+    try {
+      const res = await api.post(`/analyses/${id}/cover-letter`);
+      setCoverLetter(res.data.coverLetter);
+    } catch (err) {
+      alert('Failed to generate cover letter');
+    } finally {
+      setGeneratingLetter(false);
+    }
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(coverLetter);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const downloadPDF = () => {
     const doc = new jsPDF();
@@ -22,7 +48,6 @@ export default function Results() {
     const maxWidth = pageWidth - margin * 2;
     let y = 20;
 
-    // Header
     doc.setFontSize(20);
     doc.setFont(undefined, 'bold');
     doc.text('DevHire AI — Resume Analysis Report', margin, y);
@@ -35,7 +60,6 @@ export default function Results() {
     doc.text(`Generated: ${new Date(analysis.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}`, margin, y);
     y += 12;
 
-    // Score
     doc.setTextColor(0);
     doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
@@ -68,6 +92,28 @@ export default function Results() {
     addSection('Missing Keywords', analysis.missing_keywords);
     addSection('Skill Gaps', analysis.skill_gaps);
     addSection('Suggestions', analysis.suggestions);
+
+    if (coverLetter) {
+      if (y > 250) {
+        doc.addPage();
+        y = 20;
+      }
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      doc.text('Cover Letter', margin, y);
+      y += 7;
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'normal');
+      const letterLines = doc.splitTextToSize(coverLetter, maxWidth);
+      letterLines.forEach((line) => {
+        if (y > 280) {
+          doc.addPage();
+          y = 20;
+        }
+        doc.text(line, margin, y);
+        y += 6;
+      });
+    }
 
     doc.save(`DevHireAI-Analysis-${analysis.resumeFilename.replace('.pdf', '')}.pdf`);
   };
@@ -154,7 +200,7 @@ export default function Results() {
         </ul>
       </div>
 
-      <div className="bg-surface border border-border rounded-xl p-5">
+      <div className="bg-surface border border-border rounded-xl p-5 mb-4">
         <h2 className="text-xs uppercase tracking-widest text-muted mb-3">Suggestions</h2>
         <ul className="space-y-2.5">
           {analysis.suggestions?.map((s, i) => (
@@ -163,6 +209,44 @@ export default function Results() {
             </li>
           ))}
         </ul>
+      </div>
+
+      <div className="bg-surface border border-border rounded-xl p-5">
+        <div className="flex justify-between items-center mb-3">
+          <h2 className="text-xs uppercase tracking-widest text-muted">Cover Letter</h2>
+          {coverLetter && (
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-1 text-xs text-muted hover:text-accent transition"
+            >
+              {copied ? <Check size={13} /> : <Copy size={13} />}
+              {copied ? 'Copied' : 'Copy'}
+            </button>
+          )}
+        </div>
+
+        {!coverLetter && (
+          <button
+            onClick={handleGenerateCoverLetter}
+            disabled={generatingLetter}
+            className="flex items-center gap-2 bg-accent text-bg font-semibold text-sm px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
+          >
+            {generatingLetter ? (
+              <>
+                <span className="w-3.5 h-3.5 border-2 border-bg/30 border-t-bg rounded-full animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Sparkles size={15} /> Generate Cover Letter
+              </>
+            )}
+          </button>
+        )}
+
+        {coverLetter && (
+          <p className="text-sm text-muted whitespace-pre-line leading-relaxed">{coverLetter}</p>
+        )}
       </div>
     </div>
   );

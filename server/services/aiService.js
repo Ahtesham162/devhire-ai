@@ -36,3 +36,30 @@ ${jobDescription}
     throw new Error('Failed to parse AI response as JSON: ' + err.message);
   }
 };
+
+
+exports.generateCoverLetter = async (resumeText, jobDescription) => {
+  const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+
+  const prompt = `
+You are an expert career coach writing a tailored, professional cover letter.
+
+Write a compelling cover letter based on the resume and job description below. Requirements:
+- Keep it concise: 3-4 short paragraphs, under 300 words total
+- Open with genuine enthusiasm for the specific role, not generic phrases
+- Highlight 2-3 concrete skills/experiences from the resume that match the job description
+- Close with a confident, professional call to action
+- Do NOT invent experience not present in the resume
+- Do NOT include a header, date, or address block — just the letter body starting with "Dear Hiring Manager,"
+- Return ONLY the letter text, no markdown, no extra commentary
+
+RESUME TEXT:
+${resumeText}
+
+JOB DESCRIPTION:
+${jobDescription}
+`;
+
+  const result = await model.generateContent(prompt);
+  return result.response.text().trim();
+};

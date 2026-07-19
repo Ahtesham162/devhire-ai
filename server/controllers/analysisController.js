@@ -1,4 +1,4 @@
-const { analyzeResumeWithAI } = require('../services/aiService');
+const { analyzeResumeWithAI, generateCoverLetter } = require('../services/aiService');
 const Analysis = require('../models/Analysis');
 
 exports.analyzeResume = async (req, res) => {
@@ -14,6 +14,7 @@ exports.analyzeResume = async (req, res) => {
     const savedAnalysis = await Analysis.create({
       userId: req.userId,
       resumeFilename: resumeFilename || 'resume.pdf',
+      resumeText,
       jobDescription,
       ats_score: analysis.ats_score,
       matched_keywords: analysis.matched_keywords,
@@ -61,5 +62,26 @@ exports.deleteAnalysis = async (req, res) => {
     res.json({ message: 'Analysis deleted' });
   } catch (err) {
     res.status(500).json({ message: 'Failed to delete analysis', error: err.message });
+  }
+};
+
+
+
+exports.generateCoverLetterForAnalysis = async (req, res) => {
+  try {
+    const analysis = await Analysis.findOne({ _id: req.params.id, userId: req.userId });
+
+    if (!analysis) {
+      return res.status(404).json({ message: 'Analysis not found' });
+    }
+
+    const coverLetter = await generateCoverLetter(analysis.resumeText, analysis.jobDescription);
+
+    analysis.coverLetter = coverLetter;
+    await analysis.save();
+
+    res.json({ message: 'Cover letter generated', coverLetter });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to generate cover letter', error: err.message });
   }
 };

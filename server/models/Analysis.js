@@ -9,6 +9,9 @@ const analysisSchema = new mongoose.Schema({
   resumeFilename: {
     type: String,
   },
+  resumeText: {
+    type: String,
+  },
   jobDescription: {
     type: String,
     required: true,
@@ -21,6 +24,10 @@ const analysisSchema = new mongoose.Schema({
   missing_keywords: [String],
   skill_gaps: [String],
   suggestions: [String],
+  coverLetter: {
+    type: String,
+    default: null,
+  },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Analysis', analysisSchema);
