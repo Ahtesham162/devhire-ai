@@ -1,16 +1,9 @@
-const nodemailer = require('nodemailer');
-
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+const { Resend } = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 exports.sendResetEmail = async (toEmail, resetLink) => {
-  await transporter.sendMail({
-    from: `"DevHire AI" <${process.env.EMAIL_USER}>`,
+  await resend.emails.send({
+    from: 'DevHire AI <onboarding@resend.dev>',
     to: toEmail,
     subject: 'Reset your DevHire AI password',
     html: `
