@@ -3,6 +3,8 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 // Signup
+const { sendResetEmail, sendOtpEmail } = require('../services/emailService');
+
 exports.signup = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -17,11 +19,19 @@ exports.signup = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({ email, password: hashedPassword });
+    const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    await User.create({
+      email,
+      password: hashedPassword,
+      isVerified: false,
+      otp,
+      otpExpiry: Date.now() + 10 * 60 * 1000, // 10 minutes
+    });
 
-    res.status(201).json({ token, user: { id: user._id, email: user.email } });
+    await sendOtpEmail(email, otp);
+
+    res.status(201).json({ message: 'Account created. Check your email for a verification code.', email });
   } catch (err) {
     res.status(500).json({ message: 'Signup failed', error: err.message });
   }
@@ -35,6 +45,10 @@ exports.login = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+     if (!user.isVerified) {
+      return res.status(403).json({ message: 'Please verify your email first.' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -52,7 +66,6 @@ exports.login = async (req, res) => {
 
 
 const crypto = require('crypto');
-const { sendResetEmail } = require('../services/emailService');
 
 exports.forgotPassword = async (req, res) => {
   try {
@@ -101,4 +114,52 @@ exports.resetPassword = async (req, res) => {
   console.error('FORGOT PASSWORD ERROR:', err);
   res.status(500).json({ message: 'Failed to process request', error: err.message });
 }
+};
+
+exports.verifyOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    const user = await User.findOne({
+      email,
+      otp,
+      otpExpiry: { $gt: Date.now() },
+    });
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired code' });
+    }
+    user.isVerified = true;
+    user.otp = undefined;
+    user.otpExpiry = undefined;
+    await user.save();
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    res.json({ message: 'Email verified', token, user: { id: user._id, email: user.email } });
+  } catch (err) {
+    res.status(500).json({ message: 'Verification failed', error: err.message });
+  }
+};
+
+
+exports.resendOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    if (user.isVerified) {
+      return res.status(400).json({ message: 'Account already verified' });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    user.otp = otp;
+    user.otpExpiry = Date.now() + 10 * 60 * 1000;
+    await user.save();
+
+    await sendOtpEmail(email, otp);
+
+    res.json({ message: 'New code sent' });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to resend code', error: err.message });
+  }
 };

@@ -16,3 +16,21 @@ exports.sendResetEmail = async (toEmail, resetLink) => {
     `,
   });
 };
+
+exports.sendOtpEmail = async (toEmail, otp) => {
+  await resend.emails.send({
+    from: 'DevHire AI <onboarding@resend.dev>',
+    to: toEmail,
+    subject: 'Your DevHire AI verification code',
+    html: `
+      <div style="font-family: sans-serif; max-width: 400px; margin: 0 auto; text-align: center;">
+        <h2>Verify your email</h2>
+        <p>Enter this code to activate your account. It expires in 10 minutes.</p>
+        <div style="font-size: 32px; font-weight: bold; letter-spacing: 8px; background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 20px 0;">
+          ${otp}
+        </div>
+        <p style="color:#888; font-size:12px;">If you didn't create this account, you can ignore this email.</p>
+      </div>
+    `,
+  });
+};

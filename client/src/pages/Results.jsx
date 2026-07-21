@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Download, Sparkles, Copy, Check } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Download, Sparkles, Copy, Check, ChevronUp, ChevronDown } from 'lucide-react';
 import jsPDF from 'jspdf';
 import api from '../api/axios';
 
@@ -11,6 +11,7 @@ export default function Results() {
   const [coverLetter, setCoverLetter] = useState(null);
   const [generatingLetter, setGeneratingLetter] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showLetter, setShowLetter] = useState(true);
 
   useEffect(() => {
     api.get(`/analyses/${id}`)
@@ -215,13 +216,24 @@ export default function Results() {
         <div className="flex justify-between items-center mb-3">
           <h2 className="text-xs uppercase tracking-widest text-muted">Cover Letter</h2>
           {coverLetter && (
-            <button
-              onClick={handleCopy}
-              className="flex items-center gap-1 text-xs text-muted hover:text-accent transition"
-            >
-              {copied ? <Check size={13} /> : <Copy size={13} />}
-              {copied ? 'Copied' : 'Copy'}
-            </button>
+            <div className="flex items-center gap-3">
+              {showLetter && (
+                <button
+                  onClick={handleCopy}
+                  className="flex items-center gap-1 text-xs text-muted hover:text-accent transition"
+                >
+                  {copied ? <Check size={13} /> : <Copy size={13} />}
+                  {copied ? 'Copied' : 'Copy'}
+                </button>
+              )}
+              <button
+                onClick={() => setShowLetter((prev) => !prev)}
+                className="flex items-center gap-1 text-xs text-muted hover:text-accent transition"
+              >
+                {showLetter ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                {showLetter ? 'Hide' : 'Show'}
+              </button>
+            </div>
           )}
         </div>
 
@@ -244,7 +256,7 @@ export default function Results() {
           </button>
         )}
 
-        {coverLetter && (
+        {coverLetter && showLetter && (
           <p className="text-sm text-muted whitespace-pre-line leading-relaxed">{coverLetter}</p>
         )}
       </div>

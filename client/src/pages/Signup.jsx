@@ -13,19 +13,18 @@ export default function Signup() {
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      const res = await api.post('/auth/signup', { email, password });
-      login(res.data.token);
-      navigate('/');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Signup failed');
-    } finally {
-      setLoading(false);
-    }
-  };
+  e.preventDefault();
+  setError('');
+  setLoading(true);
+  try {
+    await api.post('/auth/signup', { email, password });
+    navigate('/verify-otp', { state: { email } });
+  } catch (err) {
+    setError(err.response?.data?.message || 'Signup failed');
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
